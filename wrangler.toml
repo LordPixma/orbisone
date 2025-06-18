@@ -1,0 +1,13 @@
+compatibility_date = "2023-10-17"
+
+[[services]]
+name = "ingest"
+main = "workers/ingest/index.ts"
+route = "/webhook/gdacs"
+triggers = { crons = ["5 0 * * *"] }
+
+[[services]]
+name = "api"
+main = "workers/api/index.ts"
+route = "/api/*"
+
