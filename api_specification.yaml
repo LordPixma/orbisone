@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: OrbisOne API
+  version: 1.0.0
+  description: |
+    RESTful API for OrbisOne SaaS dashboard.
+    Provides endpoints for events retrieval, subscription management, and statistics.
+servers:
+  - url: https://api.orbisone.com
+    description: Production server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.orbisone.com/oauth/authorize
+          tokenUrl: https://auth.orbisone.com/oauth/token
+          scopes:
+            read:events: Read event data
+            write:events: Create or modify events
+            read:subscriptions: Read subscription data
+            write:subscriptions: Create subscriptions
+  schemas:
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          example: evt_12345
+        type:
+          type: string
+          example: earthquake
+        timestamp:
+          type: string
+          format: date-time
+          example: '2025-06-18T00:00:00Z'
+        latitude:
+          type: number
+          format: float
+          example: 34.05
+        longitude:
+          type: number
+          format: float
+          example: -118.25
+        region:
+          type: string
+          example: California
+        magnitude:
+          type: number
+          format: float
+          example: 5.6
+        severityScore:
+          type: integer
+          example: 8
+        categories:
+          type: array
+          items:
+            type: string
+          example: [earthquake]
+        description:
+          type: string
+          example: 'Moderate earthquake near Los Angeles'
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: 'Invalid request parameters'
+    SubscriptionRequest:
+      type: object
+      properties:
+        types:
+          type: array
+          items:
+            type: string
+          example: [earthquake, flood]
+        regions:
+          type: array
+          items:
+            type: string
+          example: [California, Nevada]
+        minSeverity:
+          type: integer
+          example: 5
+      required:
+        - types
+        - regions
+        - minSeverity
+    SubscriptionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: sub_98765
+        filters:
+          $ref: '#/components/schemas/SubscriptionRequest'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-06-18T00:05:00Z'
+paths:
+  /api/events:
+    get:
+      summary: List events
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: Filter by event type
+        - name: region
+          in: query
+          schema:
+            type: string
+          description: Filter by region
+        - name: minSeverity
+          in: query
+          schema:
+            type: integer
+          description: Minimum severity score
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start date (YYYY-MM-DD)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: A list of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/events/{id}:
+    get:
+      summary: Get event by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/subscribe:
+    post:
+      summary: Create a new subscription
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionRequest'
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '400':
+          description: Invalid subscription data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/stats:
+    get:
+      summary: Get usage statistics
+      security:
+        - oauth2:
+          - read:events
+      responses:
+        '200':
+          description: Statistics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalEvents:
+                    type: integer
+                    example: 1500
+                  activeSubscriptions:
+                    type: integer
+                    example: 230
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+security:
+  - bearerAuth: []
