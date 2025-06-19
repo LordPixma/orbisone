@@ -1,0 +1,8 @@
+{
+  "name": "orbisone",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "emailjs-mime-parser": "^4.0.0"
+  }
+}
